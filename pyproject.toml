@@ -8,8 +8,11 @@ dependencies = [
     "datasets",
     "accelerate",
     "transformers",
-    "torch==2.8.0"
+    "torch==2.8.0",
 ]
+
+[tool.uv.extra-build-dependencies]
+"flash-attn" = ["torch"]
 
 [[tool.uv.index]]
 name = "pytorch-cu128"

@@ -29,6 +29,6 @@ uv sync
 Run Python inside the environment:
 
 ```sh
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=4
 uv run python main.py
 ```
