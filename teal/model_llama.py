@@ -8,14 +8,8 @@ from transformers.models.llama.modeling_llama import (
     LlamaForCausalLM,
 )
 
-from transformers import OPTConfig
-from transformers.models.opt.modeling_opt import (
-    OPTDecoderLayer,
-    OPTForCausalLM,
-) 
-
-from self_attn import _monkeypatch_self_attn
-from mlp import _monkeypatch_mlp
+from teal.self_attn_llama import _monkeypatch_self_attn
+from teal.mlp_llama import _monkeypatch_mlp
 
 
 def _monkeypatch_layer(layer, path, grabbing_mode=False):
@@ -146,16 +140,4 @@ class LlamaSparseForCausalLM(SparseModelMixin, LlamaForCausalLM):
         super().__init__(config)
 
         # Initialize weights and apply final processing
-        self.post_init()
-
-# opt series
-class OptSparseConfig(OPTConfig):
-    model_type = "opt_sparse"
-
-class OptSparseForCausalLm(SparseModelMixin, OPTForCausalLM):
-    config_class = OptSparseConfig
-    _no_split_modules = ["OPTDecoderLayer"]
-
-    def __init__(self, config):
-        super().__init__(config)
         self.post_init()

@@ -9,7 +9,8 @@ sys.path.append(os.path.join(parent_dir, 'utils'))
 
 from teal_utils import (
     get_tokenizer,
-    get_sparse_model
+    get_sparse_model,
+    get_model_class_name
 )
 from tqdm import tqdm
 import torch
@@ -50,44 +51,75 @@ bsz = input_ids.shape[0]
 input_ids = encodings.input_ids[:bsz,:].to(device="cuda")
 print(f"input ids shape {input_ids.shape}")
 
-hidden_states = model.model.embed_tokens(input_ids)
-print(f"hidden_states {hidden_states.shape}")
 
-attention_mask = None
-position_ids = torch.arange(seq_len, dtype=torch.long, device=hidden_states.device).unsqueeze(0).repeat(bsz, 1)
-print(f"pos id {position_ids.shape}")
-past_key_value=None
-#output_attentions = False
-use_cache = False
-cache_position=None
-position_embeddings = model.model.rotary_emb(hidden_states, position_ids)
+class_name = get_model_class_name(model_name)
 
+# llama series
+if class_name in ["LlamaForCausalLM", "LlamaSparseForCausalLM"]:
+    hidden_states = model.model.embed_tokens(input_ids)
+    print(f"hidden_states {hidden_states.shape}")
 
-# act_path = os.path.join(args.output_path, "activations")
-# os.makedirs(act_path, exist_ok=True)
+    attention_mask = None
+    position_ids = torch.arange(seq_len, dtype=torch.long, device=hidden_states.device).unsqueeze(0).repeat(bsz, 1)
+    print(f"pos id {position_ids.shape}")
+    past_key_value=None
+    #output_attentions = False
+    use_cache = False
+    cache_position=None
+    position_embeddings = model.model.rotary_emb(hidden_states, position_ids)
 
-# pass the activation layer by layer, and save the histograms for later pruning
-# copy code from LlamaModel forward
-for i in tqdm(range(len(model.model.layers))):
-    # for greedyopt
-    # torch.save(hidden_states, os.path.join(act_path, f"act_{i}.pt"))
+    for i in tqdm(range(len(model.model.layers))):
+        layer = model.model.layers[i]
+        hidden_states = hidden_states.to(layer.self_attn.q_proj.weight.data.device) 
+        hidden_states = layer(hidden_states, attention_mask, position_ids, past_key_value, use_cache, cache_position, position_embeddings)
 
-    layer = model.model.layers[i]
-    hidden_states = hidden_states.to(layer.self_attn.q_proj.weight.data.device) 
-    hidden_states = layer(hidden_states, attention_mask, position_ids, past_key_value, use_cache, cache_position, position_embeddings)
+        layer.mlp.activation_module.find_histogram()
+        layer.self_attn.activation_module.find_histogram()
+        layer.mlp.activation_module.save_histogram()
+        layer.self_attn.activation_module.save_histogram()
 
-    layer.mlp.activation_module.find_histogram()
-    layer.self_attn.activation_module.find_histogram()
-    layer.mlp.activation_module.save_histogram()
-    layer.self_attn.activation_module.save_histogram()
+        del layer.mlp.activation_module.activations
+        del layer.self_attn.activation_module.activations
+        
+        model.model.layers[i] = None
+        gc.collect()
+        torch.cuda.empty_cache()
 
-    del layer.mlp.activation_module.activations
-    del layer.self_attn.activation_module.activations
-    
-    model.model.layers[i] = None
+# opt series
+elif class_name in ["OPTForCausalLM", "OPTSparseForCausalLM"]:
+    hidden_states = model.model.decoder.embed_tokens(input_ids)
+    print(f"hidden_states {hidden_states.shape}")
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    attention_mask = None
+    position_ids = torch.arange(seq_len, dtype=torch.long, device=hidden_states.device).unsqueeze(0).repeat(bsz, 1)
+    print(f"pos id {position_ids.shape}")
+    past_key_value=None
+    output_attentions = False
+    use_cache = False
+    cache_position=None
+
+    for i in tqdm(range(len(model.model.decoder.layers))):
+        layer = model.model.decoder.layers[i]
+        hidden_states = hidden_states.to(layer.self_attn.q_proj.weight.data.device) 
+        hidden_states = layer(hidden_states, attention_mask, position_ids, past_key_value, output_attentions, use_cache, cache_position)[0]
+
+        layer.fc1.activation_module.find_histogram()
+        layer.fc2.activation_module.find_histogram()
+        layer.self_attn.activation_module.find_histogram()
+        layer.fc1.activation_module.save_histogram()
+        layer.fc2.activation_module.save_histogram()
+        layer.self_attn.activation_module.save_histogram()
+
+        del layer.fc1.activation_module.activations
+        del layer.fc2.activation_module.activations
+        del layer.self_attn.activation_module.activations
+        
+        model.model.decoder.layers[i] = None
+        gc.collect()
+        torch.cuda.empty_cache()
+else:
+    assert 1 == 0
+
 
 print("successfully collect all histogram")
 print(f"model: {model_name}, dataset/subset: {dataset_name}/{subset_name}")

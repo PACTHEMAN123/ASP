@@ -208,18 +208,21 @@ def get_model_class_name(model_name):
         return None
 
 def get_sparse_model(model_name, device, histogram_path, **kwargs):
-    from teal.model import LlamaSparseForCausalLM, LlamaSparseConfig
+    from teal.model_llama import LlamaSparseForCausalLM, LlamaSparseConfig
+    from teal.model_opt import OPTSparseForCausalLM, OPTSparseConfig
 
     from transformers import AutoConfig, AutoModelForCausalLM
 
     AutoConfig.register("llama_sparse", LlamaSparseConfig)
     AutoModelForCausalLM.register(LlamaSparseConfig, LlamaSparseForCausalLM)
+    AutoConfig.register("opt_sparse", OPTSparseConfig)
+    AutoModelForCausalLM.register(OPTSparseConfig, OPTSparseForCausalLM)
 
     class_name = get_model_class_name(model_name)
 
-    assert class_name in ["LlamaForCausalLM", "LlamaSparseForCausalLM"], f"Model class name {class_name} not supported"
+    assert class_name in ["LlamaForCausalLM", "LlamaSparseForCausalLM", "OPTForCausalLM", "OPTSparseForCausalLM"], f"Model class name {class_name} not supported"
 
-    SparseModel = LlamaSparseForCausalLM
+    SparseModel = LlamaSparseForCausalLM if "Llama" in class_name else OPTSparseForCausalLM
 
     if device == 'auto':
         # multi gpu
