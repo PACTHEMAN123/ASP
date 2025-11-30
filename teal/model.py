@@ -8,6 +8,12 @@ from transformers.models.llama.modeling_llama import (
     LlamaForCausalLM,
 )
 
+from transformers import OPTConfig
+from transformers.models.opt.modeling_opt import (
+    OPTDecoderLayer,
+    OPTForCausalLM,
+) 
+
 from self_attn import _monkeypatch_self_attn
 from mlp import _monkeypatch_mlp
 
@@ -128,11 +134,11 @@ class SparseModelMixin:
                 for layer, sparsity in zip(self.model.layers, sparses):
                     layer.mlp.sparse_fns[proj].set_threshold(sparsity)
 
+# llama series
 class LlamaSparseConfig(LlamaConfig):
     model_type = "llama_sparse"
 
 class LlamaSparseForCausalLM(SparseModelMixin, LlamaForCausalLM):
-    # config_class = LlamaSparseConfig
     config_class = LlamaSparseConfig
     _no_split_modules = ["LlamaDecoderLayer"]
 
@@ -142,3 +148,14 @@ class LlamaSparseForCausalLM(SparseModelMixin, LlamaForCausalLM):
         # Initialize weights and apply final processing
         self.post_init()
 
+# opt series
+class OptSparseConfig(OPTConfig):
+    model_type = "opt_sparse"
+
+class OptSparseForCausalLm(SparseModelMixin, OPTForCausalLM):
+    config_class = OptSparseConfig
+    _no_split_modules = ["OPTDecoderLayer"]
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.post_init()

@@ -1,5 +1,6 @@
 import sys
 import os
+import argparse
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
@@ -15,10 +16,18 @@ import torch
 import gc
 from utils.data import get_dataset
 
-model_name = "/data2/common/Llama-2-7b-hf"
-dataset_name = "/data2/common/dataset/wikitext"
-subset_name = "wikitext-103-raw-v1"
-histogram_path = "/data2/common/ASP/teal/histogram/llama-2-7B"
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--model_name', type=str)
+parser.add_argument('--dataset', type=str)
+parser.add_argument('--subset', type=str)
+parser.add_argument('--histogram_path', type=str)
+args = parser.parse_args()
+
+model_name = args.model_name
+dataset_name = args.dataset
+subset_name = args.subset
+histogram_path = args.histogram_path
 
 tokenizer = get_tokenizer(model_name)
 

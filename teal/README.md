@@ -12,6 +12,20 @@ To collect histogram
 uv run grab_act.py --model_name $MODEL_NAME --dataset $DATASET --histogram_path $HISTOGRAM_PATH
 ```
 
+for example:
+
+run llama-2-7b
+
+```bash
+uv run grab_act.py --model_name /data2/common/Llama-2-7b-hf --dataset /data2/common/dataset/wikitext --subset wikitext-103-raw-v1 --histogram_path /data2/common/ASP/teal/histogram/llama-2-7B
+```
+
+run llama-3-8b
+
+```bash
+uv run grab_act.py --model_name /data2/common/Meta-Llama-3-8B --dataset /data2/common/dataset/wikitext --subset wikitext-103-raw-v1 --histogram_path /data2/common/ASP/teal/histogram/llama-3-8B
+```
+
 ## Perplexity
 
 Now, we can use the histogram collected before to sparsify activations at inference runtime.
@@ -19,6 +33,10 @@ Now, we can use the histogram collected before to sparsify activations at infere
 To test the model's accuarcy after activation sparsification, run
 
 ```bash
-uv run test_ppl.py --model_name $MODEL_NAME --dataset $DATASET --histogram_path $HISTOGRAM_PATH
+uv run test_ppl.py --model_name /data2/common/Llama-2-7b-hf --dataset /data2/common/dataset/wikitext --subset wikitext-103-raw-v1 --histogram_path /data2/common/ASP/teal/histogram/llama-2-7B
+```
+
+```bash
+uv run test_ppl.py --model_name /data2/common/Meta-Llama-3-8B --dataset /data2/common/dataset/wikitext --subset wikitext-103-raw-v1 --histogram_path /data2/common/ASP/teal/histogram/llama-3-8B
 ```
 

@@ -12,7 +12,7 @@ from teal_utils import (
 
 from transformers.models.llama.modeling_llama import (
     apply_rotary_pos_emb,
-    LlamaRotaryEmbedding
+    repeat_kv
 )
 
 def _monkeypatch_self_attn(self_attn, file_path, grabbing_mode=False):
@@ -97,8 +97,8 @@ def _naive_forward(
     # ========= naive attention =========
     # q k v : [B, H, S, D]
     q = query_states
-    k = key_states
-    v = value_states
+    k = repeat_kv(key_states, self.num_key_value_groups) # support GQA or MQA
+    v = repeat_kv(value_states, self.num_key_value_groups)
 
     # attn_scores: [B, H, S, S]
     attn_scores = torch.matmul(q, k.transpose(-1, -2)) / (self.head_dim ** 0.5)
