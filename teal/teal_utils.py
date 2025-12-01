@@ -30,9 +30,18 @@ class SparsifyFn(nn.Module):
         self.sparsity_level = sparsity
 
     def forward(self, x):
-
         # NOTE: we can + should change this to sparsify 99% of tokens instead of 50%
         # I just finished the evals for the paper at 50% before I noticed the prefill sparsification phenomenon (Section 5.4.3)
+
+        # patch for opt
+        opt = False
+        if len(x.shape) == 2:
+            opt = True
+            B = 1
+            S = x.shape[0] // B
+            H = x.shape[1]
+            x = x.reshape(B, S, H)
+
         if x.size(1) > 1 and self.apply_prefill:
             half_seq_len = x.size(1) // 2
             # half_seq_len = int(0.99 * x.size(1))
@@ -40,9 +49,14 @@ class SparsifyFn(nn.Module):
             modified_context = self.apply(last_context)
             
             x = torch.cat((x[:, :-half_seq_len, :], modified_context), dim=1)
+            if opt:
+                x = x.reshape(S, H)
+
             return x
         
         if x.size(1) > 1 and not self.apply_prefill:
+            if opt:
+                return x.reshape(S, H)
             return x
 
         assert x.size(1) == 1, "supposedly x is decode only"

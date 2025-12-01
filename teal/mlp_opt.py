@@ -9,9 +9,9 @@ from torch import nn
 
 import types
 
-
 def _monkeypatch_fc(fc, file_path, grabbing_mode=False):
-    fc.forward_old = nn.Linear.forward
+    orig_forward = fc.forward 
+    fc.forward_old = orig_forward
     fc.forward = types.MethodType(_fc_forward, fc)
 
     fc.file_path = file_path
@@ -39,9 +39,9 @@ def _fc_forward(self, x, activation_module=None):
     else:
         if self.grabbing_mode:
             self.activation_module.grab_activations(x, 'h')
-            out = self.forward_old(self, x)
+            out = self.forward_old(x)
         else:
             x_fc = self.sparse_fns['fc'](x)
-            out = self.forward_old(self, x_fc)
+            out = self.forward_old(x_fc)
 
     return out

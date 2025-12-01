@@ -10,10 +10,7 @@ from teal_utils import (
     TealActivation
 )
 
-from transformers.models.llama.modeling_llama import (
-    apply_rotary_pos_emb,
-    repeat_kv
-)
+from transformers.integrations.sdpa_attention import sdpa_attention_forward
 
 def _monkeypatch_self_attn(self_attn, file_path, grabbing_mode=False):
     self_attn.forward_old = self_attn.forward
@@ -66,10 +63,10 @@ def _naive_forward(
     else:
         x_q = self.sparse_fns['q'](hidden_states)
         x_k = self.sparse_fns['k'](hidden_states)
-        x_k = self.sparse_fns['v'](hidden_states)
+        x_v = self.sparse_fns['v'](hidden_states)
         query_states = self.q_proj(x_q) * self.scaling
         key_states = self.k_proj(x_k)
-        value_states = self.v_proj(x_k)
+        value_states = self.v_proj(x_v)
 
     query_states = query_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2)
     key_states = key_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2)
@@ -82,16 +79,16 @@ def _naive_forward(
         )
 
     # attention interface here
-    attn_weights = torch.matmul(
+    attn_output, attn_weights = sdpa_attention_forward(
+        self,
         query_states,
-        key_states.transpose(-1, -2)
+        key_states,
+        value_states,
+        attention_mask,
+        dropout=0.0 if not self.training else self.dropout,
+        scaling=1.0,
+        **kwargs,
     )
-
-    if attention_mask is not None:
-        attn_weights = attn_weights + attention_mask
-
-    attn_output = torch.matmul(attn_weights, value_states)
-    attn_output = attn_output.transpose(1, 2)
 
     attn_output = attn_output.reshape(bsz, tgt_len, -1).contiguous()
 

@@ -69,3 +69,40 @@ def eval_ppl(model, tokenizer, device,dataset=None, debug=False, context_size=20
     ppl = torch.exp(torch.stack(nlls).double().mean())
 
     return ppl.item()
+
+# only use for debug
+def compare_models(model1, model2, tokenizer, dataset):
+    import gc
+
+    text = ""
+    for sample in tqdm(dataset):
+        text += sample["text"] + "\n\n"
+    print(f"total length of data to generate histogram {len(text)}")
+
+    seq_len = 512
+    encodings = tokenizer(text, truncation=True, return_tensors="pt", max_length=seq_len, return_overflowing_tokens=True, padding="max_length")
+    input_ids = encodings.input_ids.to(device="cuda")
+    bsz = input_ids.shape[0]
+    input_ids = encodings.input_ids[:bsz,:].to(device="cuda")
+    print(f"input ids shape {input_ids.shape}")
+
+    hidden_states1 = model1.model.decoder.embed_tokens(input_ids)
+    hidden_states2 = model2.model.decoder.embed_tokens(input_ids)
+    print(f"init, diff: {(hidden_states2 - hidden_states1).abs().max().item()}")
+
+    attention_mask = None
+    position_ids = torch.arange(seq_len, dtype=torch.long, device=hidden_states1.device).unsqueeze(0).repeat(bsz, 1)
+    print(f"pos id {position_ids.shape}")
+    past_key_value=None
+    output_attentions = False
+    use_cache = False
+    cache_position=None
+
+    layer1 = model1.model.decoder.layers[0]
+    layer2 = model2.model.decoder.layers[0]
+    hidden_states1 = hidden_states1.to(layer1.self_attn.q_proj.weight.data.device) 
+    hidden_states2 = hidden_states2.to(layer2.self_attn.q_proj.weight.data.device) 
+    hidden_states1 = layer1(hidden_states1, attention_mask, position_ids, past_key_value, output_attentions, use_cache, cache_position)[0]
+    hidden_states2 = layer2(hidden_states2, attention_mask, position_ids, past_key_value, output_attentions, use_cache, cache_position)[0]
+
+    print(f"layer 0, diff: {(hidden_states2 - hidden_states1).abs().max().item()}")
