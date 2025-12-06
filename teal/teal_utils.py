@@ -38,48 +38,35 @@ class SparsifyFn(nn.Module):
             # special branch for opt mlp layer
             #topk = False
             #if topk:
-            hidden_size = x.size(-1)
-            k = max(1, int(hidden_size * (1 - self.sparsity_level)))
-            if x.size(0) > 1 and self.apply_prefill:
-                half_seq_len = x.size(0) // 2
-                # half_seq_len = int(0.99 * x.size(1))
-                last_context = x[-half_seq_len:, :]
-                # top-k values and indices
-                topk_vals, topk_idx = torch.topk(last_context.abs(), k, dim=-1)
-
-                # create mask
-                mask = torch.zeros_like(last_context, dtype=torch.bool)
-                mask.scatter_(dim=-1, index=topk_idx, value=True)
-
-                mask1 = mask
-
-                # apply sparsity
-                modified_context = last_context * mask
-
-                
-                ret1_x = torch.cat((x[:-half_seq_len, :], modified_context), dim=0)
-                # return x
-            #else:
             # hidden_size = x.size(-1)
+            # k = max(1, int(hidden_size * (1 - self.sparsity_level)))
             # if x.size(0) > 1 and self.apply_prefill:
             #     half_seq_len = x.size(0) // 2
             #     # half_seq_len = int(0.99 * x.size(1))
             #     last_context = x[-half_seq_len:, :]
-            #     modified_context = self.apply(last_context)
-            #     x_fla = x.flatten()
-            #     x_sort, _ = torch.sort(x_fla.abs())
-            #     k = max(1, int(x_fla.shape[0] * (self.sparsity_level)))
-            #     m = x_sort[k]
-            #     idx = torch.searchsorted(x_sort, self.threshold, right=False)
+            #     # top-k values and indices
+            #     topk_vals, topk_idx = torch.topk(last_context.abs(), k, dim=-1)
 
-            #     mask2 = last_context.abs().gt(self.threshold)
+            #     # create mask
+            #     mask = torch.zeros_like(last_context, dtype=torch.bool)
+            #     mask.scatter_(dim=-1, index=topk_idx, value=True)
 
-            #     ret2_x = torch.cat((x[:-half_seq_len, :], modified_context), dim=0)
+            #     mask1 = mask
+
+            #     # apply sparsity
+            #     modified_context = last_context * mask
+
+                
+            #     ret1_x = torch.cat((x[:-half_seq_len, :], modified_context), dim=0)
             #     # return x
-            # diff = mask1.to(dtype=float) - mask2.to(dtype=float)
-            # n = torch.norm(diff, p=2)
-            # print("norm: ", n)
-            return ret1_x
+            #else:
+            if x.size(0) > 1 and self.apply_prefill:
+                half_seq_len = x.size(0) // 2
+                last_context = x[-half_seq_len:, :]
+                modified_context = self.apply(last_context)
+
+                x = torch.cat((x[:-half_seq_len, :], modified_context), dim=0)
+                return x
 
         
             if x.size(0) > 1 and not self.apply_prefill:
@@ -138,7 +125,7 @@ class TealActivation:
         if x.size(1) > 1:  # Check if seq_len > 1
             self.activations[key].append(x.detach().squeeze(0).cpu().float())
 
-    def find_histogram(self, num_bins=10000, outlier_threshold=0.01):
+    def find_histogram(self, num_bins=10000, outlier_threshold=0.001):
         if self.histograms is None:
             # for fine-grained analysis, do not combine activations
             self.activations = self.combine_activations()

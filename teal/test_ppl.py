@@ -32,7 +32,7 @@ dataset = get_dataset(dataset_name, subset_name, split="train", size=250)
 
 print("="*20)
 print("Evaluating dense PPL")
-dense_ppl = eval_ppl(dense_model, tokenizer, device="cuda", dataset=dataset, debug=False, context_size=1024, window_size=256)
+dense_ppl = eval_ppl(dense_model, tokenizer, device="cuda", dataset=dataset, debug=False, context_size=512, window_size=128)
 print(f"PPL: {dense_ppl}")
 
 for sparse_ratio in sparsity:
@@ -40,7 +40,7 @@ for sparse_ratio in sparsity:
     print(f"Evaluating sparse PPL at sparsity {sparse_ratio}")
 
     sparse_model.set_uniform_sparsity(sparse_ratio)
-    sparse_ppl = eval_ppl(sparse_model, tokenizer, device="cuda", dataset=dataset, debug=False, context_size=1024, window_size=256)
+    sparse_ppl = eval_ppl(sparse_model, tokenizer, device="cuda", dataset=dataset, debug=False, context_size=512, window_size=128)
 
     print(f"PPL: {sparse_ppl}")
 
