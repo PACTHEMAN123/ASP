@@ -25,9 +25,11 @@ N = 4096
 if __name__ == '__main__':
     x = torch.randn(1, M, device="cuda", dtype=torch.float32)
     w = torch.randn(M, N, device="cuda", dtype=torch.float32)
+    
     expected = torch.matmul(x, w)
     torch.cuda.synchronize()
     out = sparse_gemv_op(x, w)
     print(f"out {out} shape {out.shape}")
+    print(f"ans {expected} shape {expected.shape}")
     diff = expected - out
     print(diff)
