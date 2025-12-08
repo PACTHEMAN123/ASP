@@ -17,13 +17,10 @@ class SparseGEMV(Function):
         x = x.float()
         w = w.float()
         M = x.shape[1]
-        N = w.shape[1]
+        N = w.shape[0] * 32
         ans = x.new_zeros(1, N).to(x.device)
 
-        # transform w into our format
-        w_sp = w.view(M, N // 32, 32).permute(1, 0, 2).reshape(N // 32, M * 32).contiguous()
-
-        sparse_gemv_fp32.forward(x.contiguous(), w_sp, ans)
+        sparse_gemv_fp32.forward(M, N, x.contiguous(), w, ans)
         ctx.mark_non_differentiable(ans) # the function is no need for backpropogation
         return ans
 
