@@ -52,3 +52,13 @@ run opt-6.7b
 uv run test_ppl.py --model_name /data2/common/opt-6.7b --dataset /data2/common/dataset/wikitext --subset wikitext-103-raw-v1 --histogram_path /data2/common/ASP/teal/histogram/opt-6.7B
 ```
 
+## Inference Speed
+
+```bash
+uv run generate.py --model_name /data2/common/Llama-2-7b-hf --histogram_path /data2/common/ASP/teal/histogram/llama-2-7B
+```
+
+```bash
+uv run generate.py --model_name /data2/common/opt-6.7b --histogram_path /data2/common/ASP/teal/histogram/opt-6.7B
+```
+

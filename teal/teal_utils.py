@@ -73,7 +73,6 @@ class SparsifyFn(nn.Module):
                 return x
             
             assert x.size(0) == 1, "supposedly x is decode only"
-            print("running decode")
             return self.apply(x)
 
 

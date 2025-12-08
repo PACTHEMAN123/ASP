@@ -1,7 +1,7 @@
 # from torch import Tensor, nn
 import torch
 
-from ops import sparse_gemv_op
+from ops import (sparse_gemv_op, dense_gemv_op)
 import time
 import sparse_gemv_fp32
 
@@ -42,12 +42,13 @@ if __name__ == '__main__':
 
     # 测 matmul latency
     tm = Timer("matmul")
-    tm(torch.matmul, x, w)
+    tm(dense_gemv_op, x, w)
+    # tm(torch.matmul, x, w)
 
     # 测 sparse kernel latency
     ts = Timer("sparse_gemv")
-    # ts(sparse_gemv_op, x, w_sp_f32)
-    ts(sparse_gemv_fp32.forward, M, N, x, w_sp_f32, ans)
+    ts(sparse_gemv_op, x, w_sp_f32)
+    # ts(sparse_gemv_fp32.forward, M, N, x, w_sp_f32, ans)
 
     out = sparse_gemv_op(x, w_sp_f32)  # 最后跑一次拿结果
     diff = (expected - out).abs().max()
