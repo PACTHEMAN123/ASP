@@ -5,7 +5,7 @@ import sparse_gemv_fp32
 class SparseGEMV(Function):
 
     @staticmethod
-    def forward(ctx, x, w):
+    def forward(ctx, x, w, ans):
         """sum_double function forward.
         Args:
             array1 (torch.Tensor): [n,]
@@ -14,13 +14,10 @@ class SparseGEMV(Function):
         Returns:
             ans (torch.Tensor): [n,]
         """
-        x = x.float()
-        w = w.float()
         M = x.shape[1]
         N = w.shape[0] * 32
-        ans = x.new_zeros(1, N).to(x.device)
 
-        sparse_gemv_fp32.forward(M, N, x.contiguous(), w, ans)
+        sparse_gemv_fp32.forward(M, N, x, w, ans)
         ctx.mark_non_differentiable(ans) # the function is no need for backpropogation
         return ans
 
@@ -30,7 +27,7 @@ class SparseGEMV(Function):
     
 class DenseGEMV(Function):
     @staticmethod
-    def forward(ctx, x, w):
+    def forward(ctx, x, w, bias):
         """sum_double function forward.
         Args:
             array1 (torch.Tensor): [n,]

@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     # 测 sparse kernel latency
     ts = Timer("sparse_gemv")
-    ts(sparse_gemv_op, x, w_sp_f32)
+    ts(sparse_gemv_op, x, w_sp_f32, ans)
     # ts(sparse_gemv_fp32.forward, M, N, x, w_sp_f32, ans)
 
     out = sparse_gemv_op(x, w_sp_f32)  # 最后跑一次拿结果

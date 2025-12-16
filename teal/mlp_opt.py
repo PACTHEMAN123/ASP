@@ -6,6 +6,7 @@ from teal_utils import (
 )
 
 from torch import nn
+from torch.nn import functional as F
 
 import types
 
@@ -42,6 +43,9 @@ def _fc_forward(self, x, activation_module=None):
             out = self.forward_old(x)
         else:
             x_fc = self.sparse_fns['fc'](x)
-            out = self.forward_old(x_fc)
+            out = F.linear(x_fc, self.weight, self.bias)
+
+            # sparse_gemv_fp16.forward(x_fc, self.convert_weight, self.bias)
+            # out = self.forward_old(x_fc)
 
     return out
