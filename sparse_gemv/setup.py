@@ -23,6 +23,15 @@ setup(
                 "nvcc": cc_flag
             },
         ),
+        CUDAExtension(
+            'sparse_gemv_fp16', # operator name
+            ['./ops/csrc/sparse_gemv_fp16.cpp',
+             './ops/csrc/sparse_gemv_fp16_kernel.cu',
+            ],
+            extra_compile_args={
+                "nvcc": cc_flag
+            },
+        ),
     ],
     cmdclass={
         'build_ext': BuildExtension
